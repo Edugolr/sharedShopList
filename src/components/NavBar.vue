@@ -2,16 +2,22 @@
   <nav class="navbar">
     <ul class="nav-links">
       <li>
-        <router-link to="/"> <span class="icon">📝</span> Lists </router-link>
+        <router-link to="/" class="icon-button" aria-label="Home">
+          <span class="material-icons">edit</span>
+        </router-link>
       </li>
       <li>
-        <router-link to="/shared-lists"> <span class="icon">🔗</span> Shared Lists </router-link>
+        <router-link to="/shared-lists" class="icon-button" aria-label="Shared Lists">
+          <span class="material-icons">link</span>
+        </router-link>
       </li>
+      <div class="user-controls" v-if="authStore.user">
+        <img :src="authStore.user.photoURL" alt="User avatar" class="avatar" />
+        <button @click="authStore.logOut" class="icon-button" aria-label="Sign out">
+          <span class="material-icons">logout</span>
+        </button>
+      </div>
     </ul>
-    <div class="user-controls" v-if="authStore.user">
-      <span class="user-name">{{ authStore.user.displayName || authStore.user.email }}</span>
-      <button @click="authStore.logOut"><span class="icon">🚪</span> Sign out</button>
-    </div>
   </nav>
 </template>
 
@@ -22,40 +28,75 @@ const authStore = useAuthStore()
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #ccc;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   color: #333;
 }
 
 .nav-links {
   display: flex;
   list-style: none;
-  gap: 16px;
+  gap: 12px;
   padding: 0;
   margin: 0;
 }
 
-.nav-links a {
-  text-decoration: none;
-  color: inherit;
+.icon-button {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 24px;
+  color: inherit;
+  transition: background-color 0.2s ease;
+}
+
+.icon-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.material-icons {
+  font-size: 24px;
 }
 
 .user-controls {
   display: flex;
-  align-items: center;
+  justify-content: flex-end;
   gap: 12px;
 }
 
-button {
-  padding: 4px 8px;
-  cursor: pointer;
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+@media (max-width: 600px) {
+  .navbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 12px;
+  }
+  .nav-links {
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  .user-controls {
+    justify-content: flex-end;
+    width: 100%;
+  }
 }
 </style>

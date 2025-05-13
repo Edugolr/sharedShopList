@@ -1,15 +1,21 @@
 <template>
   <div class="list-container">
     <div class="header">
-      <h1>{{ listStore.activeList?.name }}</h1>
-      <div style="display: flex; gap: 8px">
-        <button class="icon-button" @click="isShareModalOpen = true">📤</button>
-        <button class="icon-button" @click="deleteList">🗑️</button>
+      <div class="header-row">
+        <h1 class="list-title">{{ listStore.activeList?.name }}</h1>
+        <div class="header-actions">
+          <button class="icon-button" @click="openShareModal" aria-label="Share list">
+            <span class="material-icons">share</span>
+          </button>
+          <button class="icon-button" @click="openDeleteModal" aria-label="Delete list">
+            <span class="material-icons">delete</span>
+          </button>
+        </div>
       </div>
     </div>
     <div class="add-bar">
       <input v-model="newItem" placeholder="Add an item" @keyup.enter="addItem" />
-      <button @click="addItem">➕</button>
+      <button @click="addItem">+</button>
     </div>
     <TransitionGroup name="fade" tag="ul" class="todo-list">
       <li v-for="item in activeItems" :key="item.id">
@@ -34,16 +40,16 @@
       </TransitionGroup>
     </details>
 
-    <div v-if="isShareModalOpen" class="modal-overlay">
-      <div class="modal">
-        <h2>Share List</h2>
-        <input v-model="shareInput" placeholder="Enter email(s), comma-separated" />
-        <div class="modal-actions">
-          <button @click="addSharedEmails">Share</button>
-          <button @click="isShareModalOpen = false">Cancel</button>
-        </div>
-      </div>
-    </div>
+    <ShareListModal
+      v-if="isShareModalOpen"
+      @close="isShareModalOpen = false"
+      @submit="addSharedEmails"
+    />
+    <DeleteListModal
+      v-if="isDeleteModalOpen"
+      @close="isDeleteModalOpen = false"
+      @confirm="confirmDeleteList"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -63,15 +69,29 @@ import {
 import { useListStore } from '../stores/listStore'
 import { getAuth } from 'firebase/auth'
 import { useRouter } from 'vue-router'
+import ShareListModal from '@/components/ShareListModal.vue'
+import DeleteListModal from '@/components/DeleteListModal.vue'
+
 const auth = getAuth()
 const router = useRouter()
-const deleteList = async () => {
-  if (!listStore.activeListId) return
-  const confirmed = confirm('Are you sure you want to delete this list?')
-  if (!confirmed) return
+const listStore = useListStore()
 
+const isShareModalOpen = ref(false)
+const isDeleteModalOpen = ref(false)
+
+const openShareModal = () => {
+  isShareModalOpen.value = true
+}
+
+const openDeleteModal = () => {
+  isDeleteModalOpen.value = true
+}
+
+const confirmDeleteList = async () => {
+  if (!listStore.activeListId) return
   await deleteDoc(doc(db, 'lists', listStore.activeListId))
   listStore.activeListId = null
+  isDeleteModalOpen.value = false
   router.push('/')
 }
 
@@ -83,10 +103,6 @@ interface GroceryItem {
 
 const newItem = ref('')
 const groceryList = ref<GroceryItem[]>([])
-const listStore = useListStore()
-
-const isShareModalOpen = ref(false)
-const shareInput = ref('')
 
 const fetchItems = () => {
   if (!listStore.activeListId) return
@@ -106,10 +122,21 @@ const addItem = async () => {
   const name = newItem.value.trim()
   if (!name || !listStore.activeListId) return
 
-  await addDoc(collection(db, 'lists', listStore.activeListId, 'items'), {
-    name,
-    done: false,
-  })
+  const existing = groceryList.value.find((item) => item.name.toLowerCase() === name.toLowerCase())
+
+  if (existing) {
+    if (existing.done) {
+      await updateDoc(doc(db, 'lists', listStore.activeListId, 'items', existing.id), {
+        done: false,
+      })
+    }
+    // If exists and not done, do nothing (don't add duplicate)
+  } else {
+    await addDoc(collection(db, 'lists', listStore.activeListId, 'items'), {
+      name,
+      done: false,
+    })
+  }
 
   newItem.value = ''
 }
@@ -126,9 +153,8 @@ const toggleItem = async (item: GroceryItem) => {
   })
 }
 
-const addSharedEmails = async () => {
+const addSharedEmails = async (rawEmails: string) => {
   const listId = listStore.activeListId
-  const rawEmails = shareInput.value
   const userEmail = auth.currentUser?.email
   if (!listId || !rawEmails || !userEmail) return
 
@@ -142,7 +168,6 @@ const addSharedEmails = async () => {
     sharedWith: arrayUnion(...emails),
   })
 
-  shareInput.value = ''
   isShareModalOpen.value = false
 }
 
@@ -153,6 +178,8 @@ onMounted(fetchItems)
 watch(() => listStore.activeListId, fetchItems)
 </script>
 <style scoped>
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
 .list-container {
   display: flex;
   flex-direction: column;
@@ -240,5 +267,55 @@ button {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+.header {
+  padding: 16px 16px 8px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.list-title {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.icon-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.material-icons {
+  font-size: 24px;
+  color: #333;
 }
 </style>
