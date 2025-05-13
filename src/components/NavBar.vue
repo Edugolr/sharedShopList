@@ -12,7 +12,7 @@
         </router-link>
       </li>
       <div class="user-controls" v-if="authStore.user">
-        <img :src="authStore.user.photoURL" alt="User avatar" class="avatar" />
+        <img :src="authStore.user.photoURL ?? undefined" alt="User avatar" class="avatar" />
         <button @click="authStore.logOut" class="icon-button" aria-label="Sign out">
           <span class="material-icons">logout</span>
         </button>
