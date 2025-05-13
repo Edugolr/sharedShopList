@@ -1,17 +1,23 @@
 <template>
-  <SignIn v-if="!authStore.user" />
-  <Navbar />
-  <main>
-    <RouterView />
-    <NewList />
-  </main>
+  <div v-if="!authStore.user" class="signin-screen">
+    <button class="signin-button" @click="authStore.signIn">
+      <span class="material-icons">login</span>
+      Sign in with Google
+    </button>
+  </div>
+  <template v-else>
+    <Navbar />
+    <main>
+      <RouterView />
+      <NewList />
+    </main>
+  </template>
 </template>
 
 <script setup lang="ts">
 import Navbar from '@/components/NavBar.vue'
-import SignIn from '@/components/SignIn.vue'
 import NewList from '@/components/NewList.vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
 import { useAuthStore } from './stores/authentication'
 import { useListStore } from './stores/listStore'
 import { watch } from 'vue'
@@ -34,6 +40,7 @@ watch(
 )
 </script>
 <style>
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 /* app.css or main.css */
 html,
 body,
@@ -66,5 +73,34 @@ main {
 img {
   max-width: 100%;
   display: block;
+}
+
+.signin-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f8f9fa;
+  text-align: center;
+  padding: 16px;
+}
+
+.signin-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  background-color: #6200ee;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s ease;
+}
+
+.signin-button:hover {
+  background-color: #4b00cb;
 }
 </style>
