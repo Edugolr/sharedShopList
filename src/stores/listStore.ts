@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { db } from '../firebase'
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, query, where, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import { useAuthStore } from './authentication'
 
 export interface ListMeta {
@@ -29,24 +29,37 @@ export const useListStore = defineStore('listStore', () => {
     const ownedQuery = query(listsRef, where('owner', '==', email))
     const sharedQuery = query(listsRef, where('sharedWith', 'array-contains', email))
 
-    const [ownedSnap, sharedSnap] = await Promise.all([getDocs(ownedQuery), getDocs(sharedQuery)])
+    const ownedLists: typeof lists = ref([])
+    const sharedLists: typeof lists = ref([])
 
-    const seen = new Set<string>()
-    const all = [...ownedSnap.docs, ...sharedSnap.docs]
-      .filter((doc) => {
-        if (seen.has(doc.id)) return false
-        seen.add(doc.id)
+    const updateMergedLists = () => {
+      const seen = new Set<string>()
+      const merged = [...ownedLists.value, ...sharedLists.value].filter((list) => {
+        if (seen.has(list.id)) return false
+        seen.add(list.id)
         return true
       })
-      .map((doc) => ({
+      lists.value = merged
+      if (!activeListId.value && merged.length) {
+        activeListId.value = merged[0].id
+      }
+    }
+
+    onSnapshot(ownedQuery, (snapshot) => {
+      ownedLists.value = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<ListMeta, 'id'>),
       }))
+      updateMergedLists()
+    })
 
-    lists.value = all
-    if (!activeListId.value && all.length) {
-      activeListId.value = all[0].id
-    }
+    onSnapshot(sharedQuery, (snapshot) => {
+      sharedLists.value = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<ListMeta, 'id'>),
+      }))
+      updateMergedLists()
+    })
   }
 
   const setActiveList = (id: string) => {
