@@ -1,19 +1,16 @@
 <template>
-  <button class="fab" @click="createNewList" aria-label="Create new list">
-    +
-  </button>
+  <button class="fab" @click="createNewList" aria-label="Create new list">+</button>
+  <NewListModal :show="showModal" @close="showModal = false" />
 </template>
 
 <script setup lang="ts">
-import { useListStore } from '../stores/listStore'
+import { ref } from 'vue'
+import NewListModal from '@/components/NewListModal.vue'
 
-const listStore = useListStore()
+const showModal = ref(false)
 
-const createNewList = async () => {
-  const name = prompt('Name your new list:')
-  if (name && name.trim()) {
-    await listStore.createList(name.trim())
-  }
+function createNewList() {
+  showModal.value = true
 }
 </script>
 

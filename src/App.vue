@@ -9,14 +9,14 @@
     <Navbar />
     <main>
       <RouterView />
-      <NewList />
+      <NewListButton />
     </main>
   </template>
 </template>
 
 <script setup lang="ts">
 import Navbar from '@/components/NavBar.vue'
-import NewList from '@/components/NewList.vue'
+import NewListButton from '@/components/NewListButton.vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from './stores/authentication'
 import { useListStore } from './stores/listStore'
