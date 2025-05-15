@@ -127,33 +127,44 @@ export const useListStore = defineStore('listStore', () => {
       updateMergedLists()
     })
 
-    // --- Begin: Listen for new items in the currently active list and notify user ---
-    const itemIdSets = new Map<string, Set<string>>()
+    // --- Begin: Listen for new items and checked state changes in the currently active list and notify user ---
+    const itemMapByList = new Map<string, Map<string, boolean>>() // listId -> (itemId -> done)
 
     watch(activeListId, (id) => {
       if (!id) return
 
       const itemsRef = firestoreCollection(db, 'lists', id, 'items')
       firestoreOnSnapshot(itemsRef, (snapshot) => {
-        const seen = itemIdSets.get(id) ?? new Set<string>()
-        const newItems = snapshot.docs.filter((doc) => !seen.has(doc.id))
+        const prevMap = itemMapByList.get(id) ?? new Map<string, boolean>()
+        const currentMap = new Map<string, boolean>()
 
-        if (newItems.length && Notification.permission === 'granted') {
-          newItems.forEach((doc) => {
-            const name = doc.data().name
-            if (typeof name === 'string') {
-              new Notification('New item added', {
-                body: name,
-              })
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data()
+          const name = typeof data.name === 'string' ? data.name : 'Unnamed item'
+          const done = !!data.done
+
+          currentMap.set(doc.id, done)
+
+          // New item
+          if (!prevMap.has(doc.id)) {
+            if (Notification.permission === 'granted') {
+              const addedBy = typeof data.addedBy === 'string' ? ` (by ${data.addedBy})` : ''
+              new Notification('New item added', { body: `${name}${addedBy}` })
             }
-          })
-        }
+          }
 
-        const updated = new Set(snapshot.docs.map((d) => d.id))
-        itemIdSets.set(id, updated)
+          // Checked/unchecked
+          if (prevMap.has(doc.id) && prevMap.get(doc.id) !== done) {
+            if (Notification.permission === 'granted') {
+              new Notification(done ? 'Item checked' : 'Item unchecked', { body: name })
+            }
+          }
+        })
+
+        itemMapByList.set(id, currentMap)
       })
     })
-    // --- End: Listen for new items in the currently active list and notify user ---
+    // --- End: Listen for new items and checked state changes in the currently active list and notify user ---
   }
 
   return {
