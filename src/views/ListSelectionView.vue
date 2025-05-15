@@ -18,7 +18,10 @@
     />
   </div>
   <ShareListModal
-    :sharedWith="listStore.lists.find((list) => list.id === selectedListId)?.sharedWith || []"
+    :initialSharedWith="
+      listStore.lists.find((list) => list.id === selectedListId)?.sharedWith || []
+    "
+    :listId="selectedListId || ''"
     v-if="showModal"
     @submit="addSharedEmails"
     @close="showModal = false"

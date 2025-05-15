@@ -8,14 +8,14 @@
         <ul>
           <li v-for="email in sharedWith" :key="email">
             {{ email }}
-            <button class="remove-button" @click="$emit('remove', email)">Remove</button>
+            <button class="remove-button" @click="remove(email)">Remove</button>
           </li>
         </ul>
       </div>
       <input v-model="input" placeholder="Enter email(s), comma-separated" />
       <div class="modal-actions">
         <button @click="submit">Share</button>
-        <button @click="$emit('close')">Cancel</button>
+        <button @click="$emit('close')">Close</button>
       </div>
     </div>
   </div>
@@ -23,17 +23,39 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
+import { db } from '../firebase'
 
-defineProps<{
-  sharedWith: string[]
+const props = defineProps<{
+  listId: string
+  initialSharedWith: string[]
 }>()
 
+const sharedWith = ref([...props.initialSharedWith])
 const input = ref('')
-const emit = defineEmits(['submit', 'close', 'remove'])
+const emit = defineEmits(['close'])
 
-const submit = () => {
-  emit('submit', input.value)
+const submit = async () => {
+  const emails = input.value
+    .split(',')
+    .map((e) => e.trim())
+    .filter((e) => e && !sharedWith.value.includes(e))
+
+  if (emails.length) {
+    await updateDoc(doc(db, 'lists', props.listId), {
+      sharedWith: arrayUnion(...emails),
+    })
+    sharedWith.value.push(...emails)
+  }
+
   input.value = ''
+}
+
+const remove = async (email: string) => {
+  await updateDoc(doc(db, 'lists', props.listId), {
+    sharedWith: arrayRemove(email),
+  })
+  sharedWith.value = sharedWith.value.filter((e) => e !== email)
 }
 </script>
 
