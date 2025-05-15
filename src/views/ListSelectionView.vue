@@ -1,36 +1,28 @@
 <template>
   <div class="list-selection">
     <h2>Select a List</h2>
-    <ul class="list-container">
-      <li
-        v-for="list in listStore.lists"
-        :key="list.id"
-        :class="{ active: list.id === listStore.activeListId }"
-        class="list-card"
-      >
-        <div
-          class="card-content"
-          @click="
-            () => {
-              listStore.setActiveList(list.id)
-              router.push({ name: 'list', params: { id: list.id } })
-            }
-          "
-        >
-          {{ list.name }}
-        </div>
-        <div class="card-actions">
-          <button @click.stop="() => shareList(list)" aria-label="Share list" class="icon-button">
-            <span class="material-icons">share</span>
-          </button>
-          <button @click.stop="() => deleteList(list)" aria-label="Delete list" class="icon-button">
-            <span class="material-icons">delete</span>
-          </button>
-        </div>
-      </li>
-    </ul>
+    <ListCard
+      v-for="list in listStore.lists"
+      :key="list.id"
+      :title="list.name"
+      :shared-with="list.owner === authStore.user?.email ? list.sharedWith || [] : undefined"
+      :shared-by="list.owner !== authStore.user?.email ? list.owner : undefined"
+      @click="
+        () => {
+          listStore.setActiveList(list.id)
+          router.push({ name: 'list', params: { id: list.id } })
+        }
+      "
+      @share="() => shareList(list)"
+      @delete="() => deleteList(list)"
+    />
   </div>
-  <ShareListModal v-if="showModal" @close="showModal = false" @submit="addSharedEmails" />
+  <ShareListModal
+    :sharedWith="listStore.lists.find((list) => list.id === selectedListId)?.sharedWith || []"
+    v-if="showModal"
+    @submit="addSharedEmails"
+    @close="showModal = false"
+  />
   <DeleteListModal
     v-if="isDeleteModalOpen"
     @confirm="confirmDeleteList"
@@ -42,12 +34,15 @@
 import { ref } from 'vue'
 import ShareListModal from '@/components/ShareListModal.vue'
 import DeleteListModal from '@/components/DeleteListModal.vue'
-import { useListStore } from '../stores/listStore'
+import ListCard from '@/components/ListCard.vue'
+import { useListStore } from '@/stores/listStore'
+import { useAuthStore } from '@/stores/authentication'
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, deleteDoc, updateDoc, arrayUnion } from 'firebase/firestore'
 
 const listStore = useListStore()
+const authStore = useAuthStore()
 const router = useRouter()
 
 const showModal = ref(false)

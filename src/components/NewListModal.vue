@@ -1,10 +1,10 @@
 <template>
-  <div class="overlay" @click.self="$emit('close')" v-if="show">
+  <div class="overlay" @click.self="emit('close')" v-if="show">
     <div class="modal">
       <h2>Create New List</h2>
       <input v-model="name" type="text" placeholder="List name" />
       <div class="actions">
-        <button class="text" @click="$emit('close')">Cancel</button>
+        <button class="text" @click="emit('close')">Cancel</button>
         <button class="contained" @click="submit" :disabled="!name.trim()">Create</button>
       </div>
     </div>
@@ -30,6 +30,7 @@ const name = ref('')
 const submit = () => {
   if (name.value.trim()) {
     listStore.createList(name.value.trim())
+    emit('close')
   }
 }
 

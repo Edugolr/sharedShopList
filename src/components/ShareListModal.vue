@@ -2,6 +2,16 @@
   <div class="modal-overlay">
     <div class="modal">
       <h2>Share List</h2>
+
+      <div class="shared-list" v-if="sharedWith.length">
+        <h3>Currently Shared With:</h3>
+        <ul>
+          <li v-for="email in sharedWith" :key="email">
+            {{ email }}
+            <button class="remove-button" @click="$emit('remove', email)">Remove</button>
+          </li>
+        </ul>
+      </div>
       <input v-model="input" placeholder="Enter email(s), comma-separated" />
       <div class="modal-actions">
         <button @click="submit">Share</button>
@@ -14,8 +24,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+defineProps<{
+  sharedWith: string[]
+}>()
+
 const input = ref('')
-const emit = defineEmits(['submit', 'close'])
+const emit = defineEmits(['submit', 'close', 'remove'])
 
 const submit = () => {
   emit('submit', input.value)
@@ -24,6 +38,33 @@ const submit = () => {
 </script>
 
 <style scoped>
+.shared-list {
+  margin-bottom: 16px;
+}
+.shared-list h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #555;
+}
+.shared-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.shared-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+.remove-button {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+}
 .modal-overlay {
   position: fixed;
   inset: 0;

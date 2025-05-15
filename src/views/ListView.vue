@@ -42,6 +42,7 @@
 
     <ShareListModal
       v-if="isShareModalOpen"
+      :sharedWith="listStore.activeList?.sharedWith || []"
       @close="isShareModalOpen = false"
       @submit="addSharedEmails"
     />
