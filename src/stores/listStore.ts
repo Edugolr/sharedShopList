@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { db } from '../firebase'
 import { collection, query, where, onSnapshot, type DocumentData, addDoc } from 'firebase/firestore'
+import {
+  onSnapshot as firestoreOnSnapshot,
+  collection as firestoreCollection,
+} from 'firebase/firestore'
 import { useAuthStore } from './authentication'
 import { serverTimestamp } from 'firebase/firestore'
 
@@ -19,6 +23,7 @@ export interface ListMeta {
 export const useListStore = defineStore('listStore', () => {
   const lists = ref<ListMeta[]>([])
   const activeListId = ref<string | null>(null)
+  const previousListIds = ref<Set<string>>(new Set())
 
   const authStore = useAuthStore()
 
@@ -56,10 +61,17 @@ export const useListStore = defineStore('listStore', () => {
       id: docRef.id,
       name,
       owner: email,
+      sharedWith: [],
     }
 
     lists.value.push(newList)
     activeListId.value = newList.id
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('List created', {
+        body: `Created list: ${name}`,
+      })
+    }
   }
 
   const init = async () => {
@@ -81,6 +93,19 @@ export const useListStore = defineStore('listStore', () => {
         return true
       })
 
+      // Detect new lists for notifications
+      const currentIds = new Set(lists.value.map((l) => l.id))
+      lists.value.forEach((list) => {
+        if (!previousListIds.value.has(list.id)) {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('New list added', {
+              body: `List: ${list.name}`,
+            })
+          }
+        }
+      })
+      previousListIds.value = currentIds
+
       if (!activeListId.value && lists.value.length > 0) {
         activeListId.value = lists.value[0].id
       }
@@ -101,6 +126,34 @@ export const useListStore = defineStore('listStore', () => {
       }))
       updateMergedLists()
     })
+
+    // --- Begin: Listen for new items in the currently active list and notify user ---
+    const itemIdSets = new Map<string, Set<string>>()
+
+    watch(activeListId, (id) => {
+      if (!id) return
+
+      const itemsRef = firestoreCollection(db, 'lists', id, 'items')
+      firestoreOnSnapshot(itemsRef, (snapshot) => {
+        const seen = itemIdSets.get(id) ?? new Set<string>()
+        const newItems = snapshot.docs.filter((doc) => !seen.has(doc.id))
+
+        if (newItems.length && Notification.permission === 'granted') {
+          newItems.forEach((doc) => {
+            const name = doc.data().name
+            if (typeof name === 'string') {
+              new Notification('New item added', {
+                body: name,
+              })
+            }
+          })
+        }
+
+        const updated = new Set(snapshot.docs.map((d) => d.id))
+        itemIdSets.set(id, updated)
+      })
+    })
+    // --- End: Listen for new items in the currently active list and notify user ---
   }
 
   return {

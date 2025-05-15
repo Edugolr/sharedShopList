@@ -32,6 +32,10 @@ watch(
       console.log('User signed in:', user)
       const listStore = useListStore()
       listStore.init()
+
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission()
+      }
     } else {
       console.log('User signed out')
     }
