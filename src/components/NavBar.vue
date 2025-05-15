@@ -43,6 +43,8 @@ const authStore = useAuthStore()
 .nav-links {
   display: flex;
   list-style: none;
+  width: 100%;
+
   gap: 12px;
   padding: 0;
   margin: 0;
@@ -72,8 +74,10 @@ const authStore = useAuthStore()
 
 .user-controls {
   display: flex;
-  justify-content: flex-end;
+
   gap: 12px;
+  justify-content: flex-end;
+  width: 100%;
 }
 
 .avatar {
@@ -91,12 +95,7 @@ const authStore = useAuthStore()
   }
   .nav-links {
     justify-content: center;
-    width: 100%;
     margin-bottom: 8px;
-  }
-  .user-controls {
-    justify-content: flex-end;
-    width: 100%;
   }
 }
 </style>
